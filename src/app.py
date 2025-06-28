@@ -434,21 +434,21 @@ Answer:""",
 
             st.session_state.chunk_size = st.selectbox(
                 "Chunk Size",
-                [500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500],
-                index=4
+                [500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000],
+                index=9
             )
 
             st.session_state.chunk_overlap = st.slider(
                 "Chunk Overlap",
                 min_value=50,
                 max_value=500,
-                value=300
+                value=50
             )
 
             st.session_state.retrieval_k = st.selectbox(
                 "Documents to Retrieve",
-                [3, 5, 7, 10, 15, 20],
-                index=4
+                [3, 5, 7, 10, 15, 20, 30, 50],
+                index=6
             )
 
         # Document Management
