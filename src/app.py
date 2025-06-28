@@ -143,7 +143,7 @@ class RAGChatbotSystem:
         try:
             # Test connection to Ollama
             test_llm = ChatOllama(
-                model="tinyllama:1.1b-chat-v1-q4_K_M",
+                model="llama3.1:8b",
                 base_url="http://localhost:11434"
             )
             # Simple test query
@@ -252,7 +252,7 @@ class RAGChatbotSystem:
 
             # Initialize LLM
             llm = ChatOllama(
-                model=st.session_state.get("selected_model", "tinyllama:1.1b-chat-v1-q4_K_M"),
+                model=st.session_state.get("selected_model", "llama3.1:8b"),
                 base_url="http://localhost:11434",
                 temperature=st.session_state.get("temperature", 0.1)
             )
@@ -368,7 +368,7 @@ Answer:""",
         # Model Selection
         st.session_state.selected_model = st.sidebar.selectbox(
             "LLM Model",
-            ["tinyllama:1.1b-chat-v1-q4_K_M", "llama3.1", "mistral", "phi3"],
+            ["llama3.1:8b", "tinyllama:1.1b-chat-v1-q4_K_M", "mistral", "phi3"],
             index=0
         )
 
