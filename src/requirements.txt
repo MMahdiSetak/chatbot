@@ -1,0 +1,31 @@
+# Core LangChain packages
+langchain==0.3.25
+langchain-community==0.3.25
+langchain-core==0.3.65
+langchain-ollama==0.3.3
+langchain-chroma==0.2.4
+langchain-text-splitters==0.3.8
+
+# Vector Database
+chromadb==1.0.12
+
+# Streamlit for web interface
+streamlit==1.45.1
+
+# Document loaders
+pypdf==5.6.0
+unstructured[md]==0.17.2
+python-multipart==0.0.20
+
+# Ollama Python client
+ollama==0.5.1
+
+# Additional utilities
+python-dotenv==1.1.0
+requests==2.32.4
+pandas==2.3.0
+numpy==2.3.0
+
+# Optional: For better PDF processing
+pymupdf
+
