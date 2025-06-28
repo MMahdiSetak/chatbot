@@ -231,7 +231,8 @@ class RAGChatbotSystem:
                     documents=documents,
                     embedding=embeddings,
                     persist_directory="./chroma_db",
-                    collection_name="rag_documents"
+                    collection_name="rag_documents",
+
                 )
             else:
                 # Add documents to existing vector store
@@ -253,7 +254,6 @@ class RAGChatbotSystem:
             # Initialize LLM
             llm = ChatOllama(
                 model=st.session_state.get("selected_model", "llama3.1:8b"),
-                # model=st.session_state.selected_model,
                 base_url="http://localhost:11434",
                 temperature=st.session_state.get("temperature", 0.1)
             )
@@ -303,24 +303,6 @@ Answer:""",
                 return self.generate_rag_response(query)
             else:
                 return self.generate_general_response(query)
-        except Exception as e:
-            return f"Error generating response: {str(e)}", []
-
-        """Generate response using RAG pipeline"""
-        try:
-            if self.conversation_chain is None:
-                if not self.setup_conversation_chain():
-                    return "Error: Could not initialize conversation system. Please check your setup.", []
-
-            # Get response from chain
-            with st.spinner("Thinking..."):
-                result = self.conversation_chain.invoke({"question": query})
-
-            answer = result.get("answer", "Sorry, I couldn't generate a response.")
-            source_documents = result.get("source_documents", [])
-
-            return answer, source_documents
-
         except Exception as e:
             return f"Error generating response: {str(e)}", []
 
@@ -452,21 +434,21 @@ Answer:""",
 
             st.session_state.chunk_size = st.selectbox(
                 "Chunk Size",
-                [500, 1000, 1500],
-                index=1
+                [500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500],
+                index=4
             )
 
             st.session_state.chunk_overlap = st.slider(
                 "Chunk Overlap",
                 min_value=50,
-                max_value=300,
-                value=200
+                max_value=500,
+                value=300
             )
 
             st.session_state.retrieval_k = st.selectbox(
                 "Documents to Retrieve",
-                [3, 5, 7, 10],
-                index=1
+                [3, 5, 7, 10, 15, 20],
+                index=4
             )
 
         # Document Management
