@@ -641,5 +641,7 @@ Answer:""",
 # Main application
 if __name__ == "__main__":
     # Initialize and run the RAG chatbot system
+    os.environ["CUDA_VISIBLE_DEVICES"] = "4"
+    os.environ["OLLAMA_GPU_LAYER"] = "cuda"
     chatbot = RAGChatbotSystem()
     chatbot.run()
