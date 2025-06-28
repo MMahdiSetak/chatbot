@@ -143,7 +143,7 @@ class RAGChatbotSystem:
         try:
             # Test connection to Ollama
             test_llm = ChatOllama(
-                model="llama3.1:8b",
+                model=st.session_state.selected_model,
                 base_url="http://localhost:11434"
             )
             # Simple test query
@@ -253,6 +253,7 @@ class RAGChatbotSystem:
             # Initialize LLM
             llm = ChatOllama(
                 model=st.session_state.get("selected_model", "llama3.1:8b"),
+                # model=st.session_state.selected_model,
                 base_url="http://localhost:11434",
                 temperature=st.session_state.get("temperature", 0.1)
             )
@@ -295,6 +296,16 @@ Answer:""",
             return False
 
     def generate_response(self, query: str):
+        """Generate response using RAG pipeline or general chat"""
+        try:
+            # Check if we have documents for RAG
+            if st.session_state.vector_store_ready and st.session_state.vector_store is not None:
+                return self.generate_rag_response(query)
+            else:
+                return self.generate_general_response(query)
+        except Exception as e:
+            return f"Error generating response: {str(e)}", []
+
         """Generate response using RAG pipeline"""
         try:
             if self.conversation_chain is None:
@@ -312,6 +323,57 @@ Answer:""",
 
         except Exception as e:
             return f"Error generating response: {str(e)}", []
+
+    def generate_rag_response(self, query: str):
+        """Generate response using RAG pipeline with documents"""
+        try:
+            if self.conversation_chain is None:
+                if not self.setup_conversation_chain():
+                    # Fallback to general chat if RAG setup fails
+                    return self.generate_general_response(query)
+
+            with st.spinner("Searching documents and thinking..."):
+                result = self.conversation_chain.invoke({"question": query})
+                answer = result.get("answer", "Sorry, I couldn't generate a response.")
+                source_documents = result.get("source_documents", [])
+                return answer, source_documents
+        except Exception as e:
+            # Fallback to general chat on error
+            st.warning("RAG system error, falling back to general chat.")
+            return self.generate_general_response(query)
+
+    def generate_general_response(self, query: str):
+        """Generate general conversation response without documents"""
+        try:
+            # Initialize general chat LLM
+            llm = ChatOllama(
+                model=st.session_state.get("selected_model", "llama3.1:8b"),
+                base_url="http://localhost:11434",
+                temperature=st.session_state.get("temperature", 0.7)  # Higher temp for general chat
+            )
+
+            # Create conversation context from chat history
+            chat_history = ""
+            for msg in st.session_state.messages[-6:]:  # Last 6 messages for context
+                role = "Human" if msg["role"] == "user" else "Assistant"
+                chat_history += f"{role}: {msg['content']}\n"
+
+            # Enhanced prompt for general conversation
+            prompt = f"""Engage in natural conversation using the context below. Respond to the user's message with exactly ONE complete answer. 
+        Do not continue the conversation beyond this response.
+            Recent conversation:
+            {chat_history}
+            Human: {query}
+            Assistant:"""
+            response = llm.invoke(prompt)
+
+            # Return response and empty sources list
+            return response.content, []
+
+        except Exception as e:
+            # Fallback response on error
+            error_msg = f"⚠️ Error in general chat: {str(e)}"
+            return error_msg, []
 
     def render_sidebar(self):
         """Render sidebar with document upload and configuration"""
@@ -485,14 +547,18 @@ Answer:""",
 
     def render_chat_interface(self):
         """Render main chat interface"""
-        st.markdown('<div class="main-header"><h1>🤖 RAG Chatbot with Document Upload</h1></div>',
-                    unsafe_allow_html=True)
+        st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+
+        # Chat mode indicator
+        if st.session_state.vector_store_ready:
+            st.info("🤖 **RAG Mode**: I can answer questions using your uploaded documents and general knowledge.")
+        else:
+            st.info("💬 **General Chat Mode**: I'm ready to chat! Upload documents to enable RAG capabilities.")
 
         # Display chat messages
         for message in st.session_state.messages:
             with st.chat_message(message["role"]):
                 st.write(message["content"])
-
                 # Display sources if available
                 if "sources" in message and message["sources"]:
                     with st.expander("📚 Sources"):
@@ -501,10 +567,11 @@ Answer:""",
                             st.write(f"Content: {source['content'][:200]}...")
 
         # Chat input
-        if query := st.chat_input("Ask a question about your documents..."):
-            if not st.session_state.vector_store_ready:
-                st.error("Please upload and process documents first before asking questions.")
-                return
+        # if query := st.chat_input("Ask a question about your documents..."):
+        if query := st.chat_input("Type your message here..."):
+            # if not st.session_state.vector_store_ready:
+            #     st.error("Please upload and process documents first before asking questions.")
+            #     return
 
             if not self.check_ollama_status():
                 st.error("Ollama is not running. Please start Ollama first.")
