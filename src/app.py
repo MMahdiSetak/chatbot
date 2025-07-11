@@ -19,7 +19,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
 from langchain_core.prompts import PromptTemplate
-import chromadb
+# import chromadb
 
 # Page configuration
 st.set_page_config(
@@ -161,7 +161,7 @@ class RAGChatbotSystem:
         elif status == "offline":
             return '<span class="status-indicator status-offline"></span>Offline'
         else:
-            return '<span class="status-indicator status-warning"></span>Checking...'
+            return '<span class="status-indicator status-warning"></span>Warning'
 
     def process_uploaded_file(self, uploaded_file, chunk_size: int = 1000, chunk_overlap: int = 200):
         """Process uploaded file and extract text"""
@@ -232,7 +232,6 @@ class RAGChatbotSystem:
                     embedding=embeddings,
                     persist_directory="./chroma_db",
                     collection_name="rag_documents",
-
                 )
             else:
                 # Add documents to existing vector store
@@ -260,7 +259,7 @@ class RAGChatbotSystem:
 
             # Create retriever
             retriever = st.session_state.vector_store.as_retriever(
-                search_kwargs={"k": st.session_state.get("retrieval_k", 5)}
+                search_kwargs={"k": st.session_state.get("retrieval_k", 50)}
             )
 
             # Custom prompt template
@@ -434,8 +433,8 @@ Answer:""",
 
             st.session_state.chunk_size = st.selectbox(
                 "Chunk Size",
-                [500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000],
-                index=9
+                [500, 1000, 2000, 3000, 4000, 5000, 6000],
+                index=5
             )
 
             st.session_state.chunk_overlap = st.slider(
@@ -447,8 +446,8 @@ Answer:""",
 
             st.session_state.retrieval_k = st.selectbox(
                 "Documents to Retrieve",
-                [3, 5, 7, 10, 15, 20, 30, 50],
-                index=6
+                [10, 20, 30, 50, 70, 95],
+                index=5
             )
 
         # Document Management
@@ -518,14 +517,30 @@ Answer:""",
         status_text.empty()
 
     def delete_document(self, index: int):
-        """Delete a document from the collection"""
+        """Delete a document from the collection and vector store"""
         if 0 <= index < len(st.session_state.documents):
             doc_info = st.session_state.documents[index]
+
+            # Remove from vector store by metadata filter
+            if st.session_state.vector_store is not None:
+                try:
+                    # Delete documents with metadata source_file matching the document name
+                    st.session_state.vector_store.delete(
+                        where={"source_file": doc_info["name"]}
+                    )
+                    st.sidebar.success(f"Deleted '{doc_info['name']}' from vector store")
+                except Exception as e:
+                    st.sidebar.error(f"Error deleting from vector store: {str(e)}")
+                    return  # Don't remove from session state if vector store deletion failed
+
+            # Remove from session state documents list
             st.session_state.documents.pop(index)
             st.sidebar.success(f"Deleted {doc_info['name']}")
 
-            # Note: In a production system, you would also remove from vector store
-            # For now, we'll just remove from the display list
+            # Check if this was the last document and update vector store status
+            if len(st.session_state.documents) == 0:
+                st.session_state.vector_store_ready = False
+                st.session_state.conversation_memory.clear()
 
     def render_chat_interface(self):
         """Render main chat interface"""
